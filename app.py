@@ -1,15 +1,15 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_socketio import SocketIO, emit
-import heapq  # For priority queue
-from datetime import datetime, timedelta  # To handle time slots and current time
+import heapq 
+from datetime import datetime, timedelta  
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Required for session management
+app.secret_key = 'your_secret_key'  
 socketio = SocketIO(app)
 
 # Data storage
-patients = {}  # Stores patient details
-priority_queue = []  # Priority queue (min-heap) to manage patients
+patients = {}  
+priority_queue = []  
 patient_counter = 0
 
 @app.route('/')
@@ -31,7 +31,7 @@ def register():
         "description": "",
         "queue_number": None
     }
-    print(patients)  # Print the updated patients dictionary
+    print(patients)
 
     # Emit a queue update to all clients
     queue_for_emit = [(priority, time_slot.strftime("%H:%M"), patient_id) for priority, time_slot, patient_id in priority_queue]
@@ -47,7 +47,7 @@ def symptoms(patient_id):
 @app.route('/add_symptoms', methods=["POST"])
 def add_symptoms():
     data = request.json
-    patient_id = int(data["patient_id"])  # Convert patient_id to integer
+    patient_id = int(data["patient_id"])  
     patients[patient_id]["description"] = data["illness"]
     patients[patient_id]["priority"] = int(data["urgency"])
 
@@ -59,13 +59,13 @@ def add_symptoms():
     ))
     update_queue_numbers()
 
-    # Convert datetime objects to strings before emitting
+    
     queue_for_emit = [(priority, time_slot.strftime("%H:%M"), patient_id) for priority, time_slot, patient_id in priority_queue]
 
-    # Notify all clients (patients and doctor) about the updated queue
+   
     socketio.emit('queue_update', {'queue': queue_for_emit, 'patients': patients})
 
-    # Redirect to the queue page
+ 
     return jsonify({
         "success": True,
         "redirect_url": url_for('queue', patient_id=patient_id)
@@ -78,20 +78,20 @@ def queue(patient_id):
     return render_template('queue.html', queue_number=queue_number, patients_ahead=patients_ahead, patient_id=patient_id, patients=patients)
 @app.route('/doctor')
 def doctor():
-    # Get the current time
+    
     current_time = datetime.now().time()
 
-    # Filter patients whose time slot is within ±1 hour of the current time
+  
     filtered_patients = []
     for priority, time_slot, patient_id in priority_queue:
         time_slot_time = time_slot.time()
         time_difference = (datetime.combine(datetime.today(), time_slot_time) - datetime.combine(datetime.today(), current_time)).total_seconds() / 3600
 
-        # If the time slot has passed or is within ±1 hour, include the patient
-        if time_difference <= 1:  # ±1 hour window
+      
+        if time_difference <= 1:  
             filtered_patients.append((priority, time_slot, patient_id))
 
-    # Sort filtered patients by time slot (earlier first) and priority (higher first)
+    
     sorted_patients = sorted(filtered_patients, key=lambda x: (x[1], x[0]))
 
     return render_template('doctor.html', patients=patients, queue=sorted_patients, current_time=current_time.strftime("%H:%M"))
@@ -103,17 +103,17 @@ def close_patient():
         priority_queue[:] = [p for p in priority_queue if p[2] != patient_id]
         update_queue_numbers()
 
-        # Convert datetime objects to strings before emitting
+      
         queue_for_emit = [(priority, time_slot.strftime("%H:%M"), patient_id) for priority, time_slot, patient_id in priority_queue]
 
-        # Notify all clients (patients and doctor) about the updated queue
+        
         socketio.emit('queue_update', {'queue': queue_for_emit, 'patients': patients})
         return jsonify({"success": True})
     return jsonify({"success": False, "error": "Patient not found in queue"})
 
 def update_queue_numbers():
     """Update queue numbers based on priority and time slot."""
-    sorted_queue = sorted(priority_queue, key=lambda x: (x[0], x[1]))  # Sort by priority and time slot
+    sorted_queue = sorted(priority_queue, key=lambda x: (x[0], x[1]))  
     for i, (priority, time_slot, patient_id) in enumerate(sorted_queue, start=1):
         patients[patient_id]["queue_number"] = i
 
