@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='doctor.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Doctor Dashboard</h1>
+        <h2>Current Time: {{ current_time }}</h2>
+        <h2>Patients Queue</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Contact</th>
+                    <th>Priority</th>
+                    <th>Time Slot</th>
+                    <th>Description</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="patientQueue">
+                {% for priority, time_slot, patient_id in queue %}
+                    <tr>
+                        <td>{{ patients[patient_id].name }}</td>
+                        <td>{{ patients[patient_id].age }}</td>
+                        <td>{{ patients[patient_id].contact }}</td>
+                        <td>{{ priority }}</td>
+                        <td>{{ time_slot.strftime("%H:%M") }}</td>
+                        <td>{{ patients[patient_id].description }}</td>
+                        <td><button onclick="closePatient({{ patient_id }})">Close</button></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        // Listen for queue updates
+        socket.on('queue_update', (data) => {
+            const tbody = document.getElementById('patientQueue');
+            tbody.innerHTML = data.queue.map(([priority, time_slot, patient_id]) => `
+                <tr>
+                    <td>${data.patients[patient_id].name}</td>
+                    <td>${data.patients[patient_id].age}</td>
+                    <td>${data.patients[patient_id].contact}</td>
+                    <td>${priority}</td>
+                    <td>${time_slot}</td>
+                    <td>${data.patients[patient_id].description}</td>
+                    <td><button onclick="closePatient(${patient_id})">Close</button></td>
+                </tr>
+            `).join('');
+        });
+
+        // Close patient
+        async function closePatient(patient_id) {
+            const response = await fetch('/close_patient', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ patient_id })
+            });
+            const result = await response.json();
+            if (!result.success) {
+                alert('Failed to close patient. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>

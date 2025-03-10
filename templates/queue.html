@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Number</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='queue.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Your Queue Number</h1>
+        <div class="queue-info">
+            <p>Patient Name: <strong>{{ patients[patient_id].name }}</strong></p>
+            <p>Your queue number is: <strong id="queue_number">{{ queue_number }}</strong></p>
+            <p>Patients ahead of you: <strong id="patients_ahead">{{ patients_ahead }}</strong></p>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        // Listen for queue updates
+        socket.on('queue_update', (data) => {
+            const patient_id = {{ patient_id }};
+            const queue_number = data.patients[patient_id]?.queue_number || "N/A";
+            const patients_ahead = data.queue.filter(p => data.patients[p[2]].priority < data.patients[patient_id].priority).length;
+
+            // Update the queue number and patients ahead
+            document.getElementById('queue_number').textContent = queue_number;
+            document.getElementById('patients_ahead').textContent = patients_ahead;
+        });
+    </script>
+</body>
+</html>
