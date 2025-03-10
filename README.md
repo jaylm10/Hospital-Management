@@ -15,7 +15,6 @@ This project is a **Hospital Management System** built using **Flask** (Python) 
 ### **Doctor Features**
 - **Real-Time Dashboard**: Doctors can view the list of patients sorted by priority and time slot.
 - **Close Patient**: Doctors can mark a patient as "treated," which removes them from the queue and updates the queue numbers for the remaining patients.
-- **Dynamic Updates**: The doctor dashboard updates automatically without requiring a page refresh.
 
 ---
 
